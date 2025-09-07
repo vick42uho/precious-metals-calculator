@@ -113,7 +113,7 @@ export default function Home() {
           <div className="flex items-center justify-center space-x-2">
             <Calculator className="h-8 w-8 text-blue-600" />
             <h1 className="text-3xl font-bold text-slate-900">
-              Precious Metals & Bitcoin Calculator
+              Gold2BTC Predictor
             </h1>
           </div>
           <p className="text-slate-600 max-w-2xl mx-auto">
