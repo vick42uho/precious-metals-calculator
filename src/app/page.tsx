@@ -1,103 +1,271 @@
-import Image from "next/image";
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { Calculator, TrendingUp, Coins, DollarSign } from 'lucide-react'
+
+type AssetType = 'gold' | 'silver' | 'btc'
+
+interface CalculationResult {
+  gold: number
+  silver: number
+  btc: number
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [inputAsset, setInputAsset] = useState<AssetType>('btc')
+  const [inputValue, setInputValue] = useState<string>('')
+  const [results, setResults] = useState<CalculationResult | null>(null)
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const calculatePrices = (asset: AssetType, value: number): CalculationResult => {
+    let goldPrice: number
+    let silverPrice: number
+    let btcPrice: number
+
+    switch (asset) {
+      case 'btc':
+        btcPrice = value
+        goldPrice = -0.000007 * btcPrice + 1784.21
+        silverPrice = -0.000015 * btcPrice + 23.14
+        break
+      
+      case 'gold':
+        goldPrice = value
+        btcPrice = (1784.21 - goldPrice) / 0.000007
+        silverPrice = 0.0135 * goldPrice - 0.51
+        break
+      
+      case 'silver':
+        silverPrice = value
+        goldPrice = (silverPrice + 0.51) / 0.0135
+        btcPrice = (1784.21 - goldPrice) / 0.000007
+        break
+      
+      default:
+        return { gold: 0, silver: 0, btc: 0 }
+    }
+
+    return {
+      gold: Math.max(0, goldPrice),
+      silver: Math.max(0, silverPrice),
+      btc: Math.max(0, btcPrice)
+    }
+  }
+
+  const handleCalculate = () => {
+    const value = parseFloat(inputValue)
+    if (isNaN(value) || value < 0) return
+
+    const result = calculatePrices(inputAsset, value)
+    setResults(result)
+  }
+
+  const handleInputChange = (value: string) => {
+    setInputValue(value)
+    if (value && !isNaN(parseFloat(value))) {
+      const result = calculatePrices(inputAsset, parseFloat(value))
+      setResults(result)
+    } else {
+      setResults(null)
+    }
+  }
+
+  const formatNumber = (num: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(num)
+  }
+
+  const getAssetIcon = (asset: AssetType) => {
+    switch (asset) {
+      case 'gold': return <Coins className="h-5 w-5 text-yellow-500" />
+      case 'silver': return <Coins className="h-5 w-5 text-gray-400" />
+      case 'btc': return <TrendingUp className="h-5 w-5 text-orange-500" />
+    }
+  }
+
+  const getAssetName = (asset: AssetType) => {
+    switch (asset) {
+      case 'gold': return 'Gold'
+      case 'silver': return 'Silver'
+      case 'btc': return 'Bitcoin'
+    }
+  }
+
+  const getUnit = (asset: AssetType) => {
+    switch (asset) {
+      case 'gold': return 'USD/oz'
+      case 'silver': return 'USD/oz'
+      case 'btc': return 'USD'
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="text-center space-y-4 pt-8">
+          <div className="flex items-center justify-center space-x-2">
+            <Calculator className="h-8 w-8 text-blue-600" />
+            <h1 className="text-3xl font-bold text-slate-900">
+              Precious Metals & Bitcoin Calculator
+            </h1>
+          </div>
+          <p className="text-slate-600 max-w-2xl mx-auto">
+            คำนวณราคา Gold, Silver และ Bitcoin 
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Input Section */}
+        <Card className="shadow-lg border-0 bg-white/80 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <DollarSign className="h-5 w-5" />
+              <span>ป้อนข้อมูลราคา</span>
+            </CardTitle>
+            <CardDescription>
+              เลือกสินทรัพย์และใส่ราคาที่ต้องการคำนวณ
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="asset-select">เลือกสินทรัพย์</Label>
+                <Select value={inputAsset} onValueChange={(value: AssetType) => setInputAsset(value)}>
+                  <SelectTrigger id="asset-select" className="h-12">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="btc">
+                      <div className="flex items-center space-x-2">
+                        <TrendingUp className="h-4 w-4 text-orange-500" />
+                        <span>Bitcoin (BTC)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="gold">
+                      <div className="flex items-center space-x-2">
+                        <Coins className="h-4 w-4 text-yellow-500" />
+                        <span>Gold</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="silver">
+                      <div className="flex items-center space-x-2">
+                        <Coins className="h-4 w-4 text-gray-400" />
+                        <span>Silver</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="price-input">ราคา ({getUnit(inputAsset)})</Label>
+                <Input
+                  id="price-input"
+                  type="number"
+                  placeholder="ใส่ราคา..."
+                  value={inputValue}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  className="h-12 text-lg"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Results Section */}
+        {results && (
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Bitcoin Card */}
+            <Card className={`shadow-lg border-2 transition-all duration-300 ${
+              inputAsset === 'btc' 
+                ? 'border-orange-200 bg-orange-50/80' 
+                : 'border-slate-200 bg-white/80 hover:border-orange-200'
+            } backdrop-blur`}>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <TrendingUp className="h-5 w-5 text-orange-500" />
+                    <span>Bitcoin</span>
+                  </div>
+                  {inputAsset === 'btc' && (
+                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                      INPUT
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-orange-600 mb-2">
+                  ${formatNumber(results.btc)}
+                </div>
+                <p className="text-sm text-slate-600">USD per BTC</p>
+              </CardContent>
+            </Card>
+
+            {/* Gold Card */}
+            <Card className={`shadow-lg border-2 transition-all duration-300 ${
+              inputAsset === 'gold' 
+                ? 'border-yellow-200 bg-yellow-50/80' 
+                : 'border-slate-200 bg-white/80 hover:border-yellow-200'
+            } backdrop-blur`}>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Coins className="h-5 w-5 text-yellow-500" />
+                    <span>Gold</span>
+                  </div>
+                  {inputAsset === 'gold' && (
+                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                      INPUT
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-yellow-600 mb-2">
+                  ${formatNumber(results.gold)}
+                </div>
+                <p className="text-sm text-slate-600">USD per oz</p>
+              </CardContent>
+            </Card>
+
+            {/* Silver Card */}
+            <Card className={`shadow-lg border-2 transition-all duration-300 ${
+              inputAsset === 'silver' 
+                ? 'border-gray-300 bg-gray-50/80' 
+                : 'border-slate-200 bg-white/80 hover:border-gray-300'
+            } backdrop-blur`}>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Coins className="h-5 w-5 text-gray-400" />
+                    <span>Silver</span>
+                  </div>
+                  {inputAsset === 'silver' && (
+                    <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                      INPUT
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-600 mb-2">
+                  ${formatNumber(results.silver)}
+                </div>
+                <p className="text-sm text-slate-600">USD per oz</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+
+      </div>
     </div>
-  );
+  )
 }
